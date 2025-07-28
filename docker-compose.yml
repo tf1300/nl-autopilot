@@ -35,7 +35,7 @@ services:
     restart: always
 
   n8n:
-    image: n8nio/n8n:1.43
+    image: n8nio/n8n:1.43.0.0
     restart: always
     environment:
       N8N_HOST: "localhost"
