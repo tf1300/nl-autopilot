@@ -14,7 +14,8 @@ for i in {1..12}; do
 done
 
 echo " Checking DB row count…"
-COUNT=$(docker compose exec -T postgres psql -U "$POSTG_USER" -tAc 'SELECT COUNT(*) FROM jobs_live;')
+: "${POSTGRES_USER:=postgres}"   # default if env var unset
+COUNT=$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -tAc 'SELECT COUNT(*) FROM jobs_live;')
 if [[ "$COUNT" == "1" ]]; then
   echo "✅ jobs_live count = 1"
 else
