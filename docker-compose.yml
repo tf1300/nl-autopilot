@@ -17,25 +17,14 @@ services:
     ports:
       - "5432:5432"
 
-  db-migrate:
-    image: postgres:15
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./db/migrations:/migrations:ro
-    entrypoint: ["bash","-c","for f in /migrations/*.sql; do psql -h postgres -U $$POSTGRES_USER -d postgres -f $$f || exit 1; done"]
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    restart: "no"
+  
 
   redis:
     image: redis:7-alpine
     restart: always
 
   n8n:
-    image: n8nio/n8n:1.43.0.0
+    image: n8nio/n8n:1.43.0
     restart: always
     environment:
       N8N_HOST: "localhost"
@@ -67,6 +56,20 @@ services:
       - n8n_data:/home/node/.n8n
       - ./workflows:/home/node/.n8n/import:ro
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  metrics:
+    build:
+      context: ./metrics
+    ports:
+      - "9464:9464"
+
 volumes:
   postgres_data:
   n8n_data:
+  prometheus_data:
