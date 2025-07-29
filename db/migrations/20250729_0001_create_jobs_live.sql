@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS jobs_live (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  company TEXT NOT NULL,
+  scraped_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  applied_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'new'
+);
