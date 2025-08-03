@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 BRANCH="beta/infra-prep"
+
+# Ensure GitHub label "beta" exists
+if ! gh label view beta >/dev/null 2>&1; then
+  gh label create beta --description "Phase beta tasks" --color "f29513"
+fi
 LABEL="beta"
 
 # Create or update PR
