@@ -1,0 +1,7 @@
+feat: Automate smoke test setup and execution
+
+This commit automates the smoke test setup and execution for the NL Job-Hunt Autopilot project.
+
+Key changes include:
+- Modified `scripts/smoke.sh` to ensure the `jobs_live` table is consistently in the expected state (one row) before running the smoke test. This involves truncating the table and inserting a single row.
+- Updated `docker-compose.yml` to remove the `db-migrate` service, as its functionality is now handled directly within the `smoke.sh` script for improved reliability and control over database state during testing.

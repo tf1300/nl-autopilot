@@ -1,0 +1,126 @@
+{
+  "mission": "Unlock β – Apply Sandbox in ≤ 7 days with the existing stack.",
+  "context": {
+    "stack": [
+      "n8n 1.43",
+      "Postgres 15",
+      "Redis",
+      "Playwright + Stealth",
+      "Qdrant 1.15",
+      "Docker-compose CI",
+      "Prometheus/Grafana (scrape http://localhost:9464/metrics)",
+      "Slack webhook"
+    ],
+    "success_criteria": [
+      "sandbox_apply_success == 1 streak for 7 consecutive days",
+      "0 CAPTCHA / proxy bans",
+      "CI on main stays green throughout the streak"
+    ]
+  },
+  "clarifying_questions": [
+    {
+      "question": "Greenhouse sandbox auth method: we use email verification for tommasofantini00@gmail.com, no password needed—ok?",
+      "answer": "OK"
+    },
+    {
+      "question": "Proxy-pool details: vendor, rotation schedule, RPM limits (or confirm “no proxy” for now)?",
+      "answer": "No proxy for now."
+    },
+    {
+      "question": "Slack webhook URL (you provided) → https://hooks.slack.com/services/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 — correct?",
+      "answer": "Correct."
+    },
+    {
+      "question": "Prometheus scrape override? default :9464/metrics is fine?",
+      "answer": "Default is fine."
+    },
+    {
+      "question": "Nightly soak cron TZ=Europe/Amsterdam at 02:10—acceptable on weekends?",
+      "answer": "Acceptable on weekends."
+    },
+    {
+      "question": "Daily caps: GPT tokens/day and proxy € / day (or 50 k tokens, €0)?",
+      "answer": "50 k tokens, €0"
+    },
+    {
+      "question": "Secrets storage: remain in local .env? (GitHub secrets later)",
+      "answer": "Remain in local .env"
+    }
+  ],
+  "tasks": [
+    {
+      "#": 1,
+      "Task": "Spin-up 2 demo postings",
+      "File / Command": "scripts/create_demo_jobs.py",
+      "Owner": "DevOps",
+      "ETA (h)": 1,
+      "Acceptance": "gh api /jobs | jq 'length==2'"
+    },
+    {
+      "#": 2,
+      "Task": "Automated form-filler script",
+      "File / Command": "bots/greenhouse_apply.py --demo",
+      "Owner": "Backend",
+      "ETA (h)": 4,
+      "Acceptance": "python bots/greenhouse_apply.py --demo \\| grep '✅'"
+    },
+    {
+      "#": 3,
+      "Task": "Sandbox smoke script",
+      "File / Command": "scripts/sandbox_apply.sh",
+      "Owner": "QA",
+      "ETA (h)": 1,
+      "Acceptance": "exit-code 0"
+    },
+    {
+      "#": 4,
+      "Task": "Expose Prometheus gauge",
+      "File / Command": "sandbox_apply_success{ats=\"greenhouse\"}",
+      "Owner": "Backend",
+      "ETA (h)": 2,
+      "Acceptance": "curl localhost:9464/metrics \\| grep 'sandbox_apply_success 1'"
+    },
+    {
+      "#": 5,
+      "Task": "Phase-metric update",
+      "File / Command": "phase_success.json",
+      "Owner": "DevOps",
+      "ETA (h)": 0.5,
+      "Acceptance": "gauge field present"
+    },
+    {
+      "#": 6,
+      "Task": "CI stage integration",
+      "File / Command": ".github/workflows/ci.yml",
+      "Owner": "DevOps",
+      "ETA (h)": 1,
+      "Acceptance": "GA run passes, gauge == 1"
+    },
+    {
+      "#": 7,
+      "Task": "Grafana alert → Slack",
+      "File / Command": "n8n workflow",
+      "Owner": "DevOps",
+      "ETA (h)": 2,
+      "Acceptance": "fires if gauge == 0 for 30 m"
+    },
+    {
+      "#": 8,
+      "Task": "Nightly soak cron",
+      "File / Command": "n8n, TZ=Europe/Amsterdam at 02:10",
+      "Owner": "DevOps",
+      "ETA (h)": 0.5,
+      "Acceptance": "logs show one run per night"
+    }
+  ],
+  "acceptance_artifacts": {
+    "risk_table": [
+      "selector-drift hash diff",
+      "proxy outage",
+      "cost creep",
+      "secret echo",
+      "secrets leak"
+    ],
+    "kpi_scoreboard": "KPI            | Target\n------------------------\nstreak_days     | 7 ✅\ncaptcha_bans    | 0 ✅"
+  }
+}
