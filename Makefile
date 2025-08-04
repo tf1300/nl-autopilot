@@ -1,7 +1,9 @@
 # Makefile helpers (docker compose v2)
 .SILENT:
 setup:  docker compose pull
-start:  docker compose up -d && docker compose ps
+start:
+	@docker compose up -d
+	@docker compose ps
 stop:   docker compose down
 logs:   docker compose logs --tail 50
 smoke: ## Run smoke tests (stack must already be up: `make start`)
