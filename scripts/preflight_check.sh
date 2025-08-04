@@ -21,18 +21,13 @@ if ! git ls-remote --tags origin refs/tags/v0.2.0-beta.0 | grep -q v0.2.0-beta.0
 fi
 echo "OK"
 
-# Check 3: make start and make smoke
-echo "3. Running 'make start' and 'make smoke' (timeout 25s)..."
-if ! timeout 25s make start; then
-    echo "FAIL: 'make start' failed or timed out."
-    exit 1
+# Check 3: sandbox-apply demo run (timeout 8s)
+echo -n "3. Running sandbox-apply demo... "
+if ! timeout 8s bash scripts/sandbox_apply.sh --demo | jq -e .confirm_id > /dev/null; then
+  echo "FAIL: sandbox-apply demo failed or timed out."
+  exit 1
 fi
-
-if ! timeout 25s make smoke; then
-    echo "FAIL: 'make smoke' failed or timed out."
-    exit 1
-fi
-echo "   'make start' and 'make smoke' OK"
+echo "OK"
 
 
 # Check 4: NGINX is running
