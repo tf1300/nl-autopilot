@@ -45,8 +45,8 @@ echo "OK"
 
 # Check 5: Prometheus metric
 echo -n "5. Checking Prometheus metric 'sandbox_apply_success'... "
-if ! curl -s localhost:9464/metrics | grep -q sandbox_apply_success; then
-  echo "FAIL: Prometheus metric 'sandbox_apply_success' not found."
+if ! curl -s --max-time 5 localhost:9464/metrics | grep -q sandbox_apply_success; then
+  echo "FAIL: Prometheus metric 'sandbox_apply_success' not found or timed out."
   exit 1
 fi
 echo "OK"
