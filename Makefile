@@ -12,3 +12,6 @@ clean:  docker compose down -v && docker system prune -f
 
 pr-beta:      ## Open PR & ping Slack
 	@bash scripts/open_beta_pr.sh
+
+preflight:      ## Run β-0 preflight checks
+	@bash scripts/preflight_check.sh
