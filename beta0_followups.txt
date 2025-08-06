@@ -1,0 +1,25 @@
+<-------------------------------------------------------------------
+( cat > beta0_followups.txt <<'PROMPT'
+You are continuing work in branch beta/infra-prep
+for repo /home/tom/nl-autopilot (Ubuntu 24.04 WSL2).
+
+### Objective
+Apply the three post-review fixes for **Phase β-0 – Infrastructure prep**.
+
+#### 1 · CI YAML quoting & dedup
+* In `.github/workflows/ci.yml`
+  – Replace the unquoted line that starts
+    `- run: DEBIAN_FRONTEND=noninteractive apt-get`
+    with a **quoted scalar**, e.g.
+    `- run: "DEBIAN_FRONTEND=noninteractive apt-get -qq update && apt-get -qq install -y jq"`
+  – Delete the obsolete duplicate step block that still contains
+    `docker compose up -d` and `bash scripts/smoke.sh`.
+
+#### 2 · Secrets / SOPS scaffolding
+* Add a placeholder encrypted file `secrets/.gitkeep`.
+* Add a minimal `.sops.yaml` at repo root:
+  ```yaml
+  creation_rules:
+    - encrypted_regex: '^(data|stringData)$'
+      path_regex: 'secrets/.*'
+>

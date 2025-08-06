@@ -1,0 +1,9 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: forbidden-files
+        name: Forbidden files
+        entry: grep -l -E '^(password|token|secret)=.*' --
+        language: pygrep
+        types: [text]
+        exclude: (\.sops\.yaml|secrets/.*)
