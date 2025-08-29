@@ -1,0 +1,16 @@
+groups:
+- name: thesis-slo
+  rules:
+  - record: job:decode_seconds:p99
+    expr: histogram_quantile(0.99, sum(rate(decode_seconds_bucket[5m])) by (le, job))
+    labels:
+      quantile: '0.99'
+
+  - alert: DecodeP99TooHigh
+    expr: job:decode_seconds:p99 > 0.2
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: "P99 decode time is too high (> 0.2s)"
+      description: "The 99th percentile for decoding requests over the last 10 minutes is above 200ms. Job: {{ $labels.job }}"

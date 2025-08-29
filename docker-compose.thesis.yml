@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  decoder:
+    build:
+      context: ./thesis/watermark
+      dockerfile: Dockerfile
+    profiles: ["thesis"]
+    working_dir: /app
+    command: uvicorn decoder_service:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./thesis/watermark:/app:ro
+    environment:
+      - PROM_PORT=9465
+    ports:
+      - "9465:9465"   # Prometheus metrics
+      - "8001:8000"   # Health endpoint
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  oracle:
+    build:
+      context: ./thesis/oracle
+      dockerfile: Dockerfile
+    image: "nl-autopilot-oracle:latest"
+    container_name: "nl-autopilot-oracle"
+    restart: unless-stopped
+    environment:
+      - POSTGRES_URL=postgresql://user:password@postgres:5432/main
+      - ORACLE_PRIVKEY_PATH=/run/secrets/oracle_key
+      - RPS=10
+    secrets:
+      - oracle_key
+    depends_on:
+      - postgres
+      - redis
+    profiles:
+      - thesis
+
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: "nl-autopilot-ipfs"
+    restart: unless-stopped
+    ports:
+      - "4001:4001" # swarm
+      - "5001:5001" # api
+      - "8081:8080" # gateway
+    volumes:
+      - ./ipfs_data:/data/ipfs
+    profiles:
+      - thesis
+
+secrets:
+  aead_key:
+    file: ./secrets/aead_key.enc
+  oracle_key:
+    file: ./secrets/oracle_key.enc
+
+volumes:
+  ipfs_data: {}

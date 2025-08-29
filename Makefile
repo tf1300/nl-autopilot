@@ -17,3 +17,21 @@ pr-beta:      ## Open PR & ping Slack
 
 preflight:      ## Run β-0 preflight checks
 	@bash scripts/preflight_check.sh
+
+ENV_FILE ?= .env.thesis
+COMPOSE   = docker compose -p nl-autopilot --env-file $(ENV_FILE) -f docker-compose.yml -f docker-compose.thesis.yml
+
+thesis-start: ## Start the thesis stack
+	$(COMPOSE) --profile thesis up -d
+
+thesis-stop: ## Stop the thesis stack
+	$(COMPOSE) --profile thesis down
+
+thesis-logs: ## Tail logs for the thesis stack
+	$(COMPOSE) --profile thesis logs -f --tail=200
+
+thesis-ps: ## Show status of thesis services
+	$(COMPOSE) --profile thesis ps
+
+thesis-smoke: ## Run thesis smoke tests
+	@bash scripts/thesis_smoke.sh

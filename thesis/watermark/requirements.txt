@@ -1,0 +1,9 @@
+prometheus-client==0.19.0
+numpy
+scipy
+pytest
+fastapi
+uvicorn
+soundfile
+python-multipart
+pytest-timeout
