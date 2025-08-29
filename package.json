@@ -1,15 +1,26 @@
 {
   "name": "nl-autopilot",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:report": "hardhat test test/ReportMatch.spec.ts",
+    "test:gas": "hardhat test test/GasBounds.spec.ts",
+    "bench:gas": "hardhat run scripts/bench_gas.ts --network hardhat"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "playwright": "1.44.0"
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "chai": "^4.2.0",
+    "hardhat": "^2.22.4",
+    "playwright": "1.44.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-mocha": "^3.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }
