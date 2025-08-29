@@ -1,65 +1,83 @@
 import numpy as np
 import scipy.io.wavfile as wavfile
+import hmac
+import hashlib
+import struct
+import params
+from crypto import frame_tag
 
-# Define the duration of each watermark window in seconds
-WATERMARK_WINDOW_DURATION_SEC = 5
+def frame_pn(secret, track_id: int, frame_idx: int, chips: int):
+    msg = struct.pack(">QQ", track_id, frame_idx)
+    digest = hmac.new(secret, msg, hashlib.sha256).digest()
+    # expand to chips in {+1,-1}
+    bits = []
+    while len(bits) < chips:
+        digest = hashlib.sha256(digest).digest()
+        for b in digest:
+            for i in range(8):
+                bits.append(1 if (b >> i) & 1 else -1)
+    return bits[:chips]
 
-# Define a magic number to identify embedded watermarks
-MAGIC_NUMBER = 10000 # A distinct int16 value
+def tag_to_bits(tag):
+    bits = []
+    for byte in tag:
+        for i in range(8):
+            bits.append(1 if (byte >> i) & 1 else -1)
+    return bits
 
-# Number of samples used to embed a 64-bit integer (8 bits per sample)
-# Not used in this simplified version, but kept for context
-SAMPLES_PER_64BIT_INT = 8
-
-# Multiplier to scale 8-bit parts to a larger range within int16
-# Not used in this simplified version, but kept for context
-MULTIPLIER = 128
-
-def encode_file(file_path, watermark_id):
+def encode_file(file_path, secret, track_id):
     """
-    Minimal placeholder for audio encoding logic.
-    Takes a WAV file path and a 64-bit watermark ID (integer).
-    Embeds a magic number and the ID at the beginning of every 5-second chunk.
-    This is NOT a real spread-spectrum encoder.
+    Embeds a watermark into a WAV file using spread-spectrum modulation, including an HMAC tag.
     """
     sample_rate, data = wavfile.read(file_path)
+    if sample_rate != params.SR:
+        raise ValueError(f"Sample rate {sample_rate} not supported, expected {params.SR}")
 
-    # Ensure data is writable
-    if data.flags['WRITEABLE'] == False:
-        data = data.copy()
+    if data.dtype != np.float32:
+        data = data.astype(np.float32) / 32767.0
 
-    # Calculate chunk size in samples
-    chunk_size_samples = int(WATERMARK_WINDOW_DURATION_SEC * sample_rate)
+    if data.ndim > 1:
+        data = data[:, 0]
 
-    # Iterate through the audio data in chunks and embed the ID
-    for i in range(0, len(data), chunk_size_samples):
-        # Need at least 2 samples for embedding (1 for magic, 1 for ID)
-        if len(data[i:]) < 2:
-            continue
+    num_samples = len(data)
+    output_data = np.zeros_like(data)
+    frame_idx = 0
+    window = np.hanning(params.FRAME)
+    
+    total_chips = params.SYNC_CHIPS + params.TAG_BITS
 
-        # Embed magic number
-        if data.ndim > 1:  # Stereo
-            data[i, 0] = MAGIC_NUMBER
-            data[i, 1] = MAGIC_NUMBER
-        else:  # Mono
-            data[i] = MAGIC_NUMBER
+    for i in range(0, num_samples - params.FRAME, params.HOP):
+        frame = data[i : i + params.FRAME] * window
 
-        # Embed watermark ID
-        if data.ndim > 1:  # Stereo
-            data[i + 1, 0] = watermark_id
-            data[i + 1, 1] = watermark_id
-        else:  # Mono
-            data[i + 1] = watermark_id
+        fft_frame = np.fft.fft(frame)
+        
+        pn = frame_pn(secret, track_id, frame_idx, params.SYNC_CHIPS)
+        tag = frame_tag(secret, track_id, frame_idx, pn, params.TAG_BITS)
+        tag_bits = tag_to_bits(tag)
+        
+        payload = pn + tag_bits
+        
+        freqs = np.fft.fftfreq(params.FRAME, 1.0 / params.SR)
+        band_indices = np.where((freqs >= params.BANDS[0]) & (freqs <= params.BANDS[1]))[0]
+        
+        if len(band_indices) < total_chips:
+            raise ValueError("Not enough frequency bins in the selected band to embed the watermark payload.")
 
-    wavfile.write(file_path, sample_rate, data)
+        for j in range(total_chips):
+            idx = band_indices[j]
+            fft_frame[idx] = (np.abs(fft_frame[idx]) + params.ALPHA * payload[j]) * np.exp(1j * np.angle(fft_frame[idx]))
 
-    # Debugging: Read back and print samples
-    _, debug_data = wavfile.read(file_path)
-    print(f"\n--- Debugging encode.py for {file_path} ---")
-    for i in range(0, len(debug_data), chunk_size_samples):
-        if len(debug_data[i:]) < 2:
-            continue
-        print(f"Chunk start: {i}, Magic: {debug_data[i, 0] if debug_data.ndim > 1 else debug_data[i]}, ID: {debug_data[i+1, 0] if debug_data.ndim > 1 else debug_data[i+1]}")
-    print(f"--- End debugging encode.py ---")
+        watermarked_frame = np.fft.ifft(fft_frame)
+        
+        output_data[i : i + params.FRAME] += watermarked_frame.real
 
+        frame_idx += 1
+
+    max_abs = np.max(np.abs(output_data))
+    if max_abs > 0:
+        output_data = (output_data / max_abs) * 32767.0
+    
+    output_data = output_data.astype(np.int16)
+
+    wavfile.write(file_path, sample_rate, output_data)
     return file_path
