@@ -1,0 +1,8 @@
+transform,param,windows_total,windows_detected,recall,fpr
+clean,none,9,9,1.0000,0.000000
+mp3,128k,9,9,1.0000,0.000000
+mp3,256k,9,9,1.0000,0.000000
+eq,hs+6dB,9,9,1.0000,0.000000
+eq,hs-6dB,9,9,1.0000,0.000000
+tempo,atempo=1.03,9,4,0.4444,0.111111
+tempo,atempo=0.97,9,5,0.5556,0.444444
